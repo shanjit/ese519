@@ -4,6 +4,8 @@ ese519-lab1-part1
     Shanjit S. Jajmann (sjajmann@seas)
 
 Idea : Using the keypad and timers, implement dot and dash functionality
+Timer 1 is used to measure the duration of the key press
+Timer 2 is used independently to generate spaces
 
 */
 
