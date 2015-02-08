@@ -58,14 +58,6 @@ int main() {
 
     while(1) {
 
-// Connections on the mbed
-// Mbed - Keypad 
-// p5 - 7
-// p6 - 6 
-// p7 - 5
-// p8 - 3
-// p10 - 8
-// p11 - 4
         // switch on row 1 and check column 
         row2 = 1;
         row1 = 0;
