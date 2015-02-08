@@ -367,6 +367,7 @@ void key_rise_int1()
     
 }
 
+// debugging function
 void key_fall_int1()
 {
     wait(0.01);
@@ -377,7 +378,7 @@ void key_fall_int1()
     }
 }
 
-
+// Interrupt handler for key press
 void key_rise_int()
 {
 
@@ -398,7 +399,7 @@ void key_rise_int()
     }
         
 }
-
+// Interrupt handler for key press
 void key_fall_int()
 {
     wait(0.01);
@@ -468,7 +469,7 @@ int main() {
     // start the timer for 400ms 
     timer_400.start();
     
-    key.rise(&key_rise_int);
+    key.rise(&key_rise_int);    // Setup the interrupt handlers
     key.fall(&key_fall_int);
     
     
