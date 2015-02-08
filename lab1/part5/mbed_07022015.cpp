@@ -2,6 +2,19 @@
 
 #define DOT 1
 #define DASH 2
+/*
+ese519-lab1-part4
+    Vaibhav N. Bhat (vaibhavn@seas)
+    Shanjit S. Jajmann (sjajmann@seas)
+
+Idea : Using the keypad and timers, implement dot and dash functionality
+Timer 1 is used to measure the duration of the key press
+Timer 2 is used independently to generate spaces
+
+7 segment display is interfaced to display dot, space and dash
+The ASCII characters are interpreted and printed on the serial terminal
+
+*/
 
 // Connections on the mbed
 // Mbed - Keypad 
@@ -12,7 +25,31 @@
 // p10 - 8
 // p11 - 4
 
-// Mbed - Seven Segment (common cathode)
+// array for saving the received dot / dash pattern
+int ch[5];
+int count_ch = 0;   // stores count of the number of dots/dashes received
+
+// Flag for detecting key
+bool flag = false;
+
+// Set up the row and column for the keypad
+// p6 senses active high and p11 activates the row
+InterruptIn key(p6);
+DigitalOut row(p11);
+
+// leds
+DigitalOut myled1(LED1);
+DigitalOut myled2(LED2);
+DigitalOut myled3(LED3);
+DigitalOut myled4(LED4);
+Serial pc(USBTX, USBRX); // tx, rx
+
+// Timers used for detecting dot/dash and space
+Timer timer_400;    // Timer for space
+Timer timer_key;
+
+// seven segment display
+// Mbed - Seven Segment (common anode)
 // p21 - 1  
 // p22 - 2 
 // gnd - 3
@@ -23,27 +60,6 @@
 // gnd - 8
 // p29 - 9
 // p30 - 10
-
-
-int ch[5];
-int count_ch = 0;
-
-bool flag = false;
-
-InterruptIn key(p6);
-DigitalOut row(p11);
-
-DigitalOut myled1(LED1);
-DigitalOut myled2(LED2);
-DigitalOut myled3(LED3);
-DigitalOut myled4(LED4);
-Serial pc(USBTX, USBRX); // tx, rx
-
-Timer timer_400;
-Timer timer_key;
-
-// seven segment display
-
 DigitalOut ss_a(p27);
 DigitalOut ss_b(p26);
 DigitalOut ss_c(p24);
@@ -53,20 +69,20 @@ DigitalOut ss_f(p29);
 DigitalOut ss_g(p30);
 DigitalOut ss_dot(p25);
 
-
+// Function for determing the character after storing the dot/dash pattern received
 inline void find_char()
 {
     
-    if(count_ch==0)
+    if(count_ch==0) 
     {
         return;
     }
     
-    else if(count_ch==1)
-    {
+    else if(count_ch==1)    // If the no of characters received is 1
+    {                       // the letter can be either E or T
         if(ch[0]==DOT)
         {
-        pc.printf("E");   
+        pc.printf("E");    // Print the interpreted character on the terminal
         }
         
         else if (ch[0]==DASH)
@@ -263,7 +279,7 @@ inline void find_char()
 
 }
 
-
+// Function for space behavior
 inline void space()
 {
     ss_a = 0;
@@ -273,8 +289,8 @@ inline void space()
     // depending on count, determine the character
     find_char();
    
-    count_ch = 0;
-    ch[0] = 0;
+    count_ch = 0;   // Reset the number of characters count
+    ch[0] = 0;      // Clear the array
     ch[1] = 0;
     ch[2] = 0;
     ch[3] = 0;
@@ -289,7 +305,7 @@ inline void dot()
     ss_d = 1;
     if(count_ch>=5)
     {
-    space();   
+    space();   // When count >= 5 the array must be checked for the ascii character
     }
     else
     {
@@ -304,7 +320,7 @@ inline void dash()
     wait(0.05);
     ss_g = 1;  
     
-    if(count_ch>=5)
+    if(count_ch>=5) // When count >= 5 the array must be checked for the ascii character
     {
     space();   
     }
@@ -314,6 +330,7 @@ inline void dash()
         count_ch++;  
     }}
 
+// function to turn off the 7 segment
 void segment_off()
 {
     ss_a = 1;
@@ -326,7 +343,7 @@ void segment_off()
     ss_dot = 1;
     
 }
-
+// function to turn on the 7 segment
 void segment_on()
 {
     ss_a = 0;
@@ -339,7 +356,7 @@ void segment_on()
     ss_dot = 0;   
 }
 
-
+// debugging function
 void key_rise_int1()
 {
     wait(0.01);
@@ -412,10 +429,10 @@ void key_fall_int()
         }
         
         // reset the timer
-        timer_key.stop();
+        timer_key.stop();   // Stop and reset the dot/dash timer
         timer_key.reset();
         flag=0;
-        timer_400.reset();
+        timer_400.reset(); // Reset the space timer
         timer_400.start();
     
     }
