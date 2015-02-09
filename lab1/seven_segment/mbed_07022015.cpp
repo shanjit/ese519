@@ -2,6 +2,27 @@
 
 #define DOT 1
 #define DASH 2
+/*
+ese519-lab1-Extra Credit Seven segment
+    Vaibhav N. Bhat (vaibhavn@seas)
+    Shanjit S. Jajmann (sjajmann@seas)
+
+Idea : Using the keypad and timers, implement dot and dash functionality
+Timer 1 is used to measure the duration of the key press
+Timer 2 is used independently to generate spaces
+
+7 segment display is interfaced to display dot, space and dash
+The ASCII characters are interpreted and printed on the serial terminal
+
+Buzzer is interfaced to beep when a dot is pressed and a longer beep
+when a dash is pressed
+
+ASCII characters are display on the 7 segment display
+
+2 spaces are allowed between letters.
+5 or more spaces is considered as one space
+
+*/
 
 // Connections on the mbed
 // Mbed - Keypad 
@@ -12,6 +33,30 @@
 // p10 - 8
 // p11 - 4
 
+// array for saving the received dot / dash pattern
+int ch[5];
+int count_ch = 0;   // stores count of the number of dots/dashes received
+
+bool flag = false;
+
+// Set up the row and column for the keypad
+// p6 senses active high and p11 activates the row
+InterruptIn key(p6);
+DigitalOut row(p11);
+
+DigitalOut myled1(LED1);
+DigitalOut myled2(LED2);
+DigitalOut myled3(LED3);
+DigitalOut myled4(LED4);
+Serial pc(USBTX, USBRX); // tx, rx
+
+// Timers used for detecting dot/dash and space
+Timer timer_400;    // Timer for space
+Timer timer_key;
+
+DigitalOut buzz(p23);
+
+// seven segment display
 // Mbed - Seven Segment (common cathode)
 // p21 - 1  
 // p22 - 2 
@@ -23,33 +68,6 @@
 // gnd - 8
 // p29 - 9
 // p30 - 10
-
-
-int ch[5];
-int count_ch = 0;
-
-bool flag = false;
-
-bool space_flag = true;
-int count_space = 0;
-    
-
-InterruptIn key(p6);
-DigitalOut row(p11);
-
-DigitalOut myled1(LED1);
-DigitalOut myled2(LED2);
-DigitalOut myled3(LED3);
-DigitalOut myled4(LED4);
-Serial pc(USBTX, USBRX); // tx, rx
-
-Timer timer_400;
-Timer timer_key;
-
-DigitalOut buzz(p23);
-
-// seven segment display
-
 DigitalOut ss_a(p27);
 DigitalOut ss_b(p26);
 DigitalOut ss_c(p24);
@@ -59,6 +77,7 @@ DigitalOut ss_f(p29);
 DigitalOut ss_g(p30);
 DigitalOut ss_dot(p25);
 
+// Function which displays ASCII character on the 7 segment display given a character
 void seven_seg_disp(char sev_ch)
 {
     if(sev_ch == '0'){
@@ -540,6 +559,7 @@ void seven_seg_disp(char sev_ch)
             ss_dot = 1; 
 }
 
+// Function for determing the character after storing the dot/dash pattern received
 inline void find_char()
 {
     
@@ -549,11 +569,11 @@ inline void find_char()
         return;
     }
     
-    else if(count_ch==1)
-    {
+    else if(count_ch==1)    // If the no of characters received is 1
+    {                       // the letter can be either E or T
         if(ch[0]==DOT)
         {
-        pc.printf("E"); 
+        pc.printf("E");     // Print the interpreted character on the terminal
         seven_seg_disp('E');  
         }
         
@@ -786,35 +806,48 @@ inline void find_char()
 
 }
 
+// Counter for no of spaces
+int count_space = 0;
+bool bool_space = false;    // Flag for displaying space
+
+// Function for handling space
 inline void space()
 {
     ss_a = 0;
     wait(0.05);
     ss_a = 1;
     
-    if(space_flag == false){
+    count_space++;  // Increment the no of spaces received
+    
+    if(count_space<3){  // If there are two between letters then interpret the letter
+        
     // depending on count, determine the character
     find_char();
    
-    count_ch = 0;
+    count_ch = 0;   // Reset the count and array
     ch[0] = 0;
     ch[1] = 0;
     ch[2] = 0;
     ch[3] = 0;
     ch[4] = 0;
+    bool_space = false;
     }
-    else
+    
+    else if ((count_space>=5)&&(bool_space==false)) // Display space
     {
-        pc.printf("Space");    
+     bool_space = true;
+
+    pc.printf("space");
+
+    
     }
 
 }
-    
-    
-
+        
+// Function for handling dot
 inline void dot()
 {
-    count_space=0;
+    count_space = 0;
     ss_d = 0;
     wait(0.05);
     ss_d = 1;
@@ -833,9 +866,10 @@ inline void dot()
     }
 }
 
+// Function for handling dash
 inline void dash()
 {
-    count_space=0;
+    count_space = 0;
     ss_g = 0;
     wait(0.05);
     ss_g = 1;  
@@ -854,6 +888,7 @@ inline void dash()
         count_ch++;  
     }}
 
+// Function for turning off the 7 segment display
 void segment_off()
 {
     ss_a = 1;
@@ -867,6 +902,7 @@ void segment_off()
     
 }
 
+// Function for turning on the 7 segment display
 void segment_on()
 {
     ss_a = 0;
@@ -879,7 +915,7 @@ void segment_on()
     ss_dot = 0;   
 }
 
-
+// Debugging function
 void key_rise_int1()
 {
     wait(0.01);
@@ -890,6 +926,7 @@ void key_rise_int1()
     
 }
 
+// Debugging function
 void key_fall_int1()
 {
     wait(0.01);
@@ -900,7 +937,7 @@ void key_fall_int1()
     }
 }
 
-
+// Interrupt handler for key press
 void key_rise_int()
 {
 
@@ -908,10 +945,10 @@ void key_rise_int()
     //read the value of the key after 10ms and set the flag
     if(key)
     {
-        timer_400.stop();
+        timer_400.stop();   // Stop the space timer
         flag = true;    
         //start a timer
-        timer_key.start();
+        timer_key.start();  // Start the button press timer
        // pc.printf("key pressed");
     }
     
@@ -922,6 +959,7 @@ void key_rise_int()
         
 }
 
+// Interrupt handler for key release
 void key_fall_int()
 {
     wait(0.01);
@@ -937,13 +975,14 @@ void key_fall_int()
         int timer_key_val = timer_key.read_ms();
         
         if((timer_key_val>40)&&(timer_key_val<220)&&(flag==true) )
-        {
+        {  // dot received
             /*myled1 = 1;
             wait(0.05);
             myled1 = 0;*/
             dot();
         }
         
+        // dash received
         else if (timer_key_val>220){
             /*myled2 = 1;
             wait(0.05);
@@ -955,7 +994,7 @@ void key_fall_int()
         timer_key.stop();
         timer_key.reset();
         flag=0;
-        timer_400.reset();
+        timer_400.reset();  // Reset and restart the space timer
         timer_400.start();
     
     }
@@ -992,7 +1031,7 @@ int main() {
     // start the timer for 400ms 
     timer_400.start();
     
-    key.rise(&key_rise_int);
+    key.rise(&key_rise_int);    // Set up the interrup handler
     key.fall(&key_fall_int);
     
     
@@ -1008,16 +1047,9 @@ int main() {
         /*myled3 = 1;
         wait(0.05);
         myled3 = 0;*/
-        
-        count_space++;
-        
-        if(count_space==2)
-        {
-            space_flag = true;
+    
             space();
-            
-        }
-        
+
         }
         }
     }
